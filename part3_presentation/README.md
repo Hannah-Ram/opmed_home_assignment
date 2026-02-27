@@ -47,33 +47,31 @@ Then open `http://localhost:3000` in your browser.
 
 **Output:**
 - **Accuracy Metrics** - model MAE (±minutes), MAPE (%), accuracy within ±15 min, and improvement over manual ±25 min estimates.
-- **Business Impact Analysis** - compares current manual scheduling against the AI model. Four metrics are calculated:
+- **Business Impact Analysis** - compares current manual scheduling against the AI model:
 
   | Metric | Formula |
   |---|---|
-  | **Surgeries Per Month** | `[(day_min - AI_MAE×surgeries_per_day) − (day_min - manual_buffer×surgeries_per_day)] ÷ avg_surgery_min × 22 days` - capacity recovered by using tighter AI buffers instead of manual estimates |
-  | **Annual Revenue** | `extra_surgeries_per_month × 12 × revenue_per_surgery` |
-  | **Overtime Savings** | `(manual_overrun_rate − model_overrun_rate) × surgeries_per_day × work_days × cost_per_overrun` - reduction in overrun incidents multiplied by cost per incident |
-  | **Total Annual Benefit** | `Annual Revenue + Overtime Savings + Idle Time Savings` where idle time savings = `idle_value_per_OR_per_day × work_days × num_ORs` (fixed, independent of the model) |
+  | **Extra Surgeries Per Day** | `(∣Manual MAE∣ − ∣AI MAE∣) × surgeries_per_day ÷ avg_surgery_min` — total time freed across all daily surgeries, converted back to surgery slots |
+  | **Extra Surgeries Per Month** | `extra_surgeries_per_day × work_days_per_month` |
+  | **Total Annual Benefit** | `extra_surgeries_per_day × work_days_per_year × revenue_per_surgery` |
 
-  The only value that comes from your uploaded data is the **AI MAE** (model prediction error). All other inputs are taken from the Business Settings tab.
+  `avg_surgery_min` is computed automatically from the **Duration in Minutes** column of your uploaded file. `Manual MAE` is the typical prediction error of the current manual scheduling method (minutes). All other inputs are taken from the Business Settings tab.
 
 ---
 
 ## Tab 3 - Business Settings
 
-No upload required. Configure the economic parameters used in the Business Impact calculation:
+No upload required. Configure the economic parameters used in the Business Impact calculation (accessible via the ⚙ Business Settings button on the Duration Predictions tab):
 
-| Field | What it represents |
-|---|---|
-| Operating Day (min) | Total OR time available per day |
-| Average Surgery (min) | Typical procedure duration |
-| Manual Buffer (±min) | Current surgeon scheduling buffer - the "before AI" baseline |
-| Revenue per Surgery ($) | Net revenue per procedure |
-| Manual / Model Overrun Rate | Fraction of surgeries that run over schedule |
-| Cost per Overrun ($) | Cost per overrun incident |
-| Idle Time Value per OR/day ($) | Value of unused OR time |
-| Number of ORs | Total operating rooms in your facility |
-| Work Days per Year | Annual operating days |
+| Field | Default | What it represents |
+|---|---|---|
+| Surgeries per Day | 30 | Average number of surgeries performed per OR per day |
+| ORs per Department | 4 | Number of operating rooms in a typical department |
+| Departments | 3 | Number of departments in your facility - multiplied by ORs per Department to get total facility ORs |
+| Work Days per Month | 22 | Operating days per month; annual figures are derived automatically as × 12 |
+| Revenue per Surgery ($) | 15,000 | Average net revenue per additional surgery unlocked by the AI improvement |
+| Manual MAE (minutes) | 25 | Typical prediction error of the current manual scheduling method - the "before AI" baseline |
 
-Click **Save Configuration** to apply. If a prediction has already been run, the Business Impact section updates immediately with the new numbers. Settings reset to defaults if the server restarts.
+**Note:** Average Surgery Duration is **not** a configurable field — it is computed automatically from the `Duration in Minutes` column of your uploaded file.
+
+Click **Save Configuration** to apply. Click **Reset to Defaults** to restore all values above. If a prediction has already been run, the Business Impact section updates immediately with the new numbers. Settings reset to defaults if the server restarts.
