@@ -1,0 +1,1871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surgery Schedule Optimizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #e8f4f8 0%, #f0e6ff 50%, #ffe8f0 100%);
+            min-height: 100vh;
+            color: #1a202c;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .navbar {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .navbar-content {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .logo img {
+            height: 32px;
+            width: auto;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 32px 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-header h1 {
+            font-size: 2.2em;
+            margin-bottom: 8px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #06b6d4 0%, #6b7280 50%, #b76ccb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .page-header p {
+            font-size: 0.95em;
+            color: #718096;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            padding: 28px;
+            transition: all 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #06b6d4;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card h2 {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            color: #1a202c;
+            font-weight: 700;
+        }
+
+        .upload-area {
+            border: 2px dashed #cbd5e0;
+            border-radius: 12px;
+            padding: 48px 32px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f0f9fc;
+            position: relative;
+        }
+
+        .upload-area:hover {
+            border-color: #06b6d4;
+            background: #e0f7fa;
+        }
+
+        .upload-area.dragging {
+            border-color: #06b6d4;
+            background: #c7f0f0;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .upload-area p {
+            color: #4a5568;
+            margin: 12px 0;
+            font-size: 0.95em;
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+        }
+
+        .upload-area .hint {
+            font-size: 0.85em;
+            color: #a0aec0;
+            position: relative;
+            z-index: 1;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 24px;
+            margin-top: 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(6, 182, 212, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .metric {
+            background: #f0f9fc;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(6, 182, 212, 0.2);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-value {
+            font-size: 1.9em;
+            font-weight: 800;
+            background: linear-gradient(135deg, #06b6d4 0%, #06b6d4 50%, #f97316 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 8px 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .metric-label {
+            color: #64748b;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px 20px;
+            color: #06b6d4;
+        }
+
+        .spinner {
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #06b6d4;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fee2e2;
+            border-left: 4px solid #dc2626;
+            color: #991b1b;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            display: none;
+            font-size: 0.9em;
+        }
+
+        .success-message {
+            background: #dcfce7;
+            border-left: 4px solid #059669;
+            color: #166534;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            display: none;
+            font-size: 0.9em;
+        }
+
+        .file-info {
+            color: #718096;
+            font-size: 0.9em;
+            margin-top: 16px;
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+        }
+
+        .metrics-container {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .metrics-container.active {
+            max-height: 500px;
+        }
+
+        /* Schedule View */
+        .schedule-section {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            padding: 28px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .schedule-section h2 {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            color: #1a202c;
+            font-weight: 700;
+        }
+
+        .dropdown-container {
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .dropdown-container label {
+            font-weight: 600;
+            color: #1a202c;
+            font-size: 0.95em;
+        }
+
+        .dropdown-select {
+            padding: 8px 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            background: white;
+            font-size: 0.9em;
+            color: #1a202c;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            min-width: 220px;
+        }
+
+        .dropdown-select:hover {
+            border-color: #06b6d4;
+            box-shadow: 0 2px 8px rgba(6, 182, 212, 0.1);
+        }
+
+        .dropdown-select:focus {
+            outline: none;
+            border-color: #06b6d4;
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+        }
+
+        /* Gantt Chart */
+        .gantt-wrapper {
+            display: flex;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            background: white;
+            margin-top: 16px;
+        }
+
+        .gantt-labels {
+            flex: 0 0 200px;
+            border-right: 1px solid #e2e8f0;
+            background: linear-gradient(180deg, #f8fafb 0%, #f0f4f8 100%);
+        }
+
+        .gantt-label-header {
+            padding: 16px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 700;
+            color: #64748b;
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            background: #f0f4f8;
+        }
+
+        .gantt-label {
+            padding: 16px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+            color: #1a202c;
+            font-size: 0.9em;
+            height: 140px;
+            display: flex;
+            align-items: center;
+            background: white;
+        }
+
+        .gantt-content {
+            flex: 1;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .gantt-timeline-header {
+            display: flex;
+            height: 80px;
+            border-bottom: 1px solid #e2e8f0;
+            background: #f0f4f8;
+            position: sticky;
+            top: 0;
+            z-index: 30;
+        }
+
+        .gantt-hour {
+            flex: 0 0 180px;
+            min-width: 180px;
+            padding: 8px 4px;
+            border-right: 1px solid #e2e8f0;
+            color: #64748b;
+            font-size: 0.8em;
+            font-weight: 700;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .gantt-rows {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .gantt-row {
+            display: flex;
+            height: auto;
+            position: relative;
+            border-bottom: 1px solid #e2e8f0;
+            background: white;
+            padding: 8px 4px;
+        }
+
+        .gantt-cell {
+            flex: 1;
+            position: relative;
+            height: 100%;
+            display: block;
+            min-width: 100%;
+        }
+
+        .gantt-surgery {
+            position: absolute;
+            height: 35px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            user-select: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+            padding: 0 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .gantt-surgery:hover {
+            filter: brightness(0.9);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+            transform: scale(1.02);
+            z-index: 10;
+        }
+
+        .gantt-tooltip {
+            background: rgba(26, 32, 44, 0.95);
+            color: white;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            pointer-events: none;
+            z-index: 1000;
+            max-width: 280px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .tooltip-row {
+            display: flex;
+            margin: 5px 0;
+            align-items: center;
+        }
+
+        .tooltip-label {
+            font-weight: 600;
+            min-width: 70px;
+            opacity: 0.8;
+            font-size: 0.8em;
+        }
+
+        .tooltip-value {
+            margin-left: 8px;
+            font-size: 0.9em;
+        }
+
+        /* Table View */
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+            margin-top: 16px;
+        }
+
+        .schedule-table th {
+            background: #f0f4f8;
+            border: 1px solid #e2e8f0;
+            padding: 14px 12px;
+            text-align: left;
+            font-weight: 700;
+            color: #64748b;
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .schedule-table td {
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+        }
+
+        .schedule-table tr:nth-child(even) {
+            background: #f8fafb;
+        }
+
+        .schedule-table tr:hover {
+            background: #f0f4f8;
+        }
+
+        .surgery-block {
+            padding: 6px 10px;
+            border-radius: 6px;
+            color: white;
+            font-weight: 700;
+            text-align: center;
+            font-size: 0.85em;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 50px auto;
+            padding: 28px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            border: 1px solid #e2e8f0;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 16px;
+        }
+
+        .modal-header h2 {
+            font-size: 1.3em;
+            background: linear-gradient(135deg, #06b6d4 0%, #b76ccb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.8em;
+            cursor: pointer;
+            color: #64748b;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .close-btn:hover {
+            color: #1a202c;
+            transform: rotate(90deg);
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 60px 40px;
+            color: #718096;
+            font-size: 0.95em;
+        }
+
+        @media (max-width: 1200px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .page-header h1 {
+                font-size: 1.5em;
+            }
+
+            .dropdown-select {
+                min-width: 100%;
+            }
+
+            .gantt-labels {
+                flex: 0 0 120px;
+            }
+
+            .gantt-label {
+                padding: 12px 8px;
+                font-size: 0.8em;
+            }
+        }
+
+        /* Tabs Navigation */
+        .tabs-nav {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 600;
+            color: #718096;
+            transition: all 0.2s ease;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab-btn:hover {
+            color: #06b6d4;
+        }
+
+        .tab-btn.active {
+            color: #06b6d4;
+            border-bottom-color: #06b6d4;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Predictions Section */
+        .predictions-section {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            padding: 28px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .predictions-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .prediction-metric {
+            background: #f0f9fc;
+            padding: 16px;
+            border-radius: 10px;
+            border-left: 4px solid #06b6d4;
+        }
+
+        .prediction-metric-label {
+            color: #64748b;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .prediction-metric-value {
+            font-size: 1.8em;
+            font-weight: 800;
+            color: #06b6d4;
+        }
+
+        .business-impact {
+            background: linear-gradient(135deg, #e0f7fa 0%, #f3e5f5 100%);
+            padding: 24px;
+            border-radius: 12px;
+            margin: 24px 0;
+            border: 1px solid rgba(6, 182, 212, 0.2);
+        }
+
+        .business-impact h3 {
+            color: #1a202c;
+            margin-bottom: 16px;
+            font-size: 1.1em;
+        }
+
+        .impact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .impact-card {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid #059669;
+        }
+
+        .impact-label {
+            color: #64748b;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .impact-value {
+            font-size: 1.6em;
+            font-weight: 800;
+            color: #059669;
+        }
+
+        .predictions-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85em;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            display: block;
+        }
+
+        .predictions-table thead {
+            background: #f0f4f8;
+            position: sticky;
+            top: 0;
+        }
+
+        .predictions-table th {
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            text-align: left;
+            font-weight: 700;
+            color: #64748b;
+            font-size: 0.75em;
+            text-transform: uppercase;
+        }
+
+        .predictions-table td {
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+        }
+
+        .predictions-table tbody tr:nth-child(even) {
+            background: #f8fafb;
+        }
+
+        .time-saved-positive {
+            background: #dcfce7;
+            color: #166534;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .chart-container {
+            margin: 24px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .chart-container canvas {
+            max-height: 400px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #1a202c;
+            font-size: 0.9em;
+        }
+
+        .form-group input {
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #06b6d4;
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #1a202c;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e1;
+            transform: translateY(-2px);
+        }
+
+        /* Business Settings Gear Button */
+        .btn-settings-gear {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 18px;
+            background: white;
+            border: 1.5px solid #06b6d4;
+            border-radius: 8px;
+            color: #06b6d4;
+            font-size: 0.88em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .btn-settings-gear:hover {
+            background: #06b6d4;
+            color: white;
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* Info tooltip */
+        .info-tip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 17px;
+            height: 17px;
+            background: #e2e8f0;
+            border-radius: 50%;
+            font-size: 0.72em;
+            color: #64748b;
+            cursor: help;
+            position: relative;
+            margin-left: 5px;
+            vertical-align: middle;
+            font-weight: 700;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+        .info-tip:hover {
+            background: #06b6d4;
+            color: white;
+        }
+        .info-tip:hover .tip-text {
+            display: block;
+        }
+        .tip-text {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 9px 13px;
+            border-radius: 8px;
+            font-size: 1.15em;
+            white-space: normal;
+            width: 220px;
+            line-height: 1.5;
+            z-index: 1000;
+            font-weight: 400;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+            pointer-events: none;
+        }
+        .tip-text::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #1e293b;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="navbar-content">
+            <div class="logo">
+                <img src="https://cdn.prod.website-files.com/64c609b323bdfebd1d843775/64c609b323bdfebd1d84376e_logo-dark.svg" alt="Opmed" style="height: 32px;">
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>Surgery Schedule & Duration Analytics</h1>
+            <p>Optimize schedules and predict surgery durations with AI</p>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tabs-nav">
+            <button class="tab-btn active" data-tab="optimizer">Schedule Optimizer</button>
+            <button class="tab-btn" data-tab="predictions">Duration Predictions</button>
+        </div>
+
+        <!-- Optimizer Tab -->
+        <div id="optimizer-tab" class="tab-content active">
+            <div class="main-layout">
+            <div class="card">
+                <h2>Upload Schedule</h2>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📤</div>
+                    <p>Drag and drop your CSV file</p>
+                    <div class="hint">or click to browse</div>
+                    <button class="btn btn-primary" onclick="document.getElementById('fileInput').click();">
+                        Select File
+                    </button>
+                    <input type="file" id="fileInput" accept=".csv" />
+                    <div class="file-info" id="fileInfo"></div>
+                </div>
+                <div class="error" id="error"></div>
+                <div class="success-message" id="successMsg"></div>
+            </div>
+
+            <div class="card">
+                <h2>Results Summary</h2>
+                <div class="metrics-container" id="metricsContainer">
+                    <div class="metrics-grid">
+                        <div class="metric">
+                            <div class="metric-label">Total Cost</div>
+                            <div class="metric-value" id="metricCost">-</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Anesthetists</div>
+                            <div class="metric-value" id="metricAnesthetists">-</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Avg Shift (h)</div>
+                            <div class="metric-value" id="metricAvgShift">-</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Total Overtime (h)</div>
+                            <div class="metric-value" id="metricOvertime">-</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Optimizing schedule...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="scheduleSection" style="display: none;" class="schedule-section">
+            <h2>Schedule View</h2>
+            <div class="dropdown-container">
+                <label for="anesthetistSelect">Filter by Anesthetist:</label>
+                <select id="anesthetistSelect" class="dropdown-select">
+                    <option value="">All Anesthetists</option>
+                </select>
+            </div>
+            <div id="scheduleContent">
+                <div class="no-data">No schedule data loaded</div>
+            </div>
+        </div>
+        </div>
+        <!-- End Optimizer Tab -->
+
+        <!-- Predictions Tab -->
+        <div id="predictions-tab" class="tab-content">
+            <div class="predictions-section">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px;">
+                    <div>
+                        <h2 style="margin-bottom: 6px;">Surgery Duration Prediction</h2>
+                        <p style="color: #718096;">Upload a CSV file with surgery data to predict durations using machine learning. Compare predictions with current surgeon estimates (±25 min accuracy).</p>
+                    </div>
+                    <button class="btn-settings-gear" onclick="openSettingsModal()">⚙ Business Settings</button>
+                </div>
+                
+                <div class="main-layout">
+                    <div class="card">
+                        <h3>Upload Data</h3>
+                        <div class="upload-area" id="predictionUploadArea">
+                            <div class="upload-icon">📤</div>
+                            <p>Drag and drop your CSV file</p>
+                            <div class="hint">CSV format: Surgery Type, Anesthesia Type, Age, BMI, DoctorID, AnaesthetistID, Duration in Minutes</div>
+                            <button class="btn btn-primary" onclick="document.getElementById('predictionFileInput').click();">
+                                Select File
+                            </button>
+                            <input type="file" id="predictionFileInput" accept=".csv" />
+                            <div class="file-info" id="predictionFileInfo"></div>
+                        </div>
+                        <div class="error" id="predictionError"></div>
+                        <div class="success-message" id="predictionSuccessMsg"></div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Accuracy Metrics</h3>
+                        <div class="predictions-metrics" id="accuracyMetrics">
+                            <div class="prediction-metric">
+                                <div class="prediction-metric-label">MAE (±minutes)</div>
+                                <div class="prediction-metric-value" id="metricMAE">-</div>
+                            </div>
+                            <div class="prediction-metric">
+                                <div class="prediction-metric-label">MAPE (%)</div>
+                                <div class="prediction-metric-value" id="metricMAPE">-</div>
+                            </div>
+                            <div class="prediction-metric">
+                                <div class="prediction-metric-label">Acc ±15min (%)</div>
+                                <div class="prediction-metric-value" id="metricAcc15">-</div>
+                            </div>
+                            <div class="prediction-metric" style="border-left-color: #059669;">
+                                <div class="prediction-metric-label">Better Than Manual</div>
+                                <div class="prediction-metric-value" id="metricImprovement" style="color: #059669;">-</div>
+                                <div style="font-size: 0.78em; color: #64748b; margin-top: 6px; line-height: 1.5;">
+                                    AI <strong>±<span id="metricMAEInline">–</span> min</strong><br>
+                                    vs Manual <strong>±<span id="manualMAEInline">25</span> min</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="loading" id="predictionLoading" style="display: none;">
+                            <div class="spinner"></div>
+                            <p>Making predictions...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Business Impact Section -->
+                <div class="business-impact" id="businessImpactSection" style="display: none;">
+                    <h3>💰 Business Impact Analysis</h3>
+                    <p style="color: #64748b; font-size: 0.9em; margin-bottom: 16px;">AI model vs. manual scheduling (manual MAE: <span id="manualBufferLabel">25</span> min) &mdash; updates automatically when you change <strong>Business Settings</strong></p>
+                    <div class="impact-grid" style="grid-template-columns: 1.1fr 1fr 1fr 1.4fr; gap: 14px;">
+
+                        <!-- Card 1: Extra Surgeries -->
+                        <div class="impact-card">
+                            <div class="impact-label">Extra Surgeries / Month</div>
+                            <div class="impact-value" id="impactSurgeriesMonth" style="font-size: 1.7em;">-</div>
+                            <div style="font-size: 0.78em; color: #64748b; margin-top: 2px;">additional per OR</div>
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(6,182,212,0.15); display: flex; flex-direction: column; gap: 3px;">
+                                <div style="font-size: 0.76em; color: #94a3b8;"><span style="color: #475569; font-weight: 600;" id="detailSurgeriesDay">-</span> extra/day per OR</div>
+                                <div style="font-size: 0.76em; color: #94a3b8;">~<span style="color: #475569; font-weight: 600;" id="detailSurgeriesYear">-</span> extra/year per OR</div>
+                                <div style="font-size: 0.76em; color: #94a3b8;">avg surgery: <span style="color: #475569; font-weight: 600;" id="detailAvgDuration">-</span> min (from data)</div>
+                            </div>
+                        </div>
+
+                        <!-- Card 2: Per OR Revenue -->
+                        <div class="impact-card">
+                            <div class="impact-label">Per OR / Year</div>
+                            <div id="impactPerOR" style="font-size: 1.7em; font-weight: 800; background: linear-gradient(135deg, #06b6d4 0%, #6366f1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 8px 0;">-</div>
+                            <div style="font-size: 0.78em; color: #64748b;">annual revenue per OR</div>
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(6,182,212,0.15);">
+                                <div style="font-size: 0.76em; color: #94a3b8;"><span style="color: #475569; font-weight: 600;" id="detailPerORMonth">-</span> / month per OR</div>
+                            </div>
+                        </div>
+
+                        <!-- Card 3: Facility Scale -->
+                        <div class="impact-card" style="background: #f8fafc;">
+                            <div class="impact-label">Your Facility</div>
+                            <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85em;">
+                                    <span style="color: #94a3b8;">ORs / dept</span>
+                                    <span style="font-weight: 700; color: #1a202c;" id="detailORsPerDept">-</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85em;">
+                                    <span style="color: #94a3b8;">Departments</span>
+                                    <span style="font-weight: 700; color: #1a202c;" id="detailDepts">-</span>
+                                </div>
+                                <div style="height: 1px; background: #e2e8f0; margin: 4px 0;"></div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9em;">
+                                    <span style="color: #475569; font-weight: 600;">Total ORs</span>
+                                    <span style="font-weight: 800; color: #06b6d4; font-size: 1.2em;" id="detailTotalORs">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 4: Total (green highlight) -->
+                        <div class="impact-card" style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-left: 4px solid #059669; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 16px rgba(5,150,105,0.15);">
+                            <div style="font-size: 0.75em; font-weight: 700; color: #065f46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">💰 Total Annual Benefit</div>
+                            <div id="impactTotal" style="font-size: 2.4em; font-weight: 900; color: #059669; line-height: 1; margin-bottom: 4px;">-</div>
+                            <div style="font-size: 0.78em; color: #065f46; font-weight: 500; margin-bottom: 12px;">across all ORs &amp; departments</div>
+                            <div style="font-size: 0.78em; color: #065f46; opacity: 0.85;" id="detailTotalCalc">-</div>
+                            <div style="margin-top: 8px; font-size: 0.78em; color: #065f46;"><span style="opacity: 0.7;">per month</span> &nbsp;<strong id="detailTotalMonth">-</strong></div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Predictions Table -->
+            </div>
+        </div>
+        <!-- End Predictions Tab -->
+
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle"></h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Business Settings Modal -->
+    <div id="settingsModal" class="modal" onclick="if(event.target===this)closeSettingsModal()">
+        <div class="modal-content" style="max-width: 760px;">
+            <div class="modal-header">
+                <h2>⚙ Business Configuration</h2>
+                <button class="close-btn" onclick="closeSettingsModal()">&times;</button>
+            </div>
+            <p style="color: #718096; margin-bottom: 24px;">Customize these values to match your facility's economics. These affect the business impact calculations.</p>
+            <div id="configForm" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <!-- Form fields populated by JavaScript -->
+            </div>
+            <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="resetConfig()">Reset to Defaults</button>
+                <button class="btn btn-primary" onclick="saveConfig()">Save Configuration</button>
+            </div>
+            <div id="configMessage" style="margin-top: 16px;"></div>
+            <div style="margin-top: 24px; background: #f0f9ff; border-radius: 10px; padding: 20px;">
+                <h3 style="color: #1e40af; margin-bottom: 10px;">📌 Key Parameters</h3>
+                <ul style="margin-left: 20px; color: #475569; line-height: 1.8;">
+                    <li><strong>Manual MAE:</strong> The typical prediction error of your current manual scheduling method - how many minutes off surgeon estimates tend to be</li>
+                    <li><strong>Revenue per Surgery:</strong> Your average net revenue per extra procedure unlocked</li>
+                    <li><strong>Average Surgery Duration:</strong> Automatically computed from the uploaded file's Duration column - not configurable here</li>
+                    <li><strong>Work Days per Month:</strong> Monthly count used for all calculations - annual figures are automatically derived as × 12</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab Navigation
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const tabName = this.dataset.tab;
+                
+                // Remove active class from all tabs
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked tab
+                this.classList.add('active');
+                document.getElementById(tabName + '-tab').classList.add('active');
+            });
+        });
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const errorDiv = document.getElementById('error');
+        const successMsg = document.getElementById('successMsg');
+        const loading = document.getElementById('loading');
+        const metricsContainer = document.getElementById('metricsContainer');
+        const scheduleSection = document.getElementById('scheduleSection');
+        const anesthetistSelect = document.getElementById('anesthetistSelect');
+        const scheduleContent = document.getElementById('scheduleContent');
+        const modal = document.getElementById('modal');
+
+        let currentGanttData = [];
+        let currentMetrics = {};
+        let currentGrouped = {};
+        let lastMAE = null;             // model MAE from last prediction upload
+        let lastAvgSurgeryMin = null;  // avg surgery duration computed from uploaded data
+
+        const ROOM_COLORS = [
+            '#ef4444', '#f97316', '#eab308', '#22c55e', '#10b981',
+            '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1',
+            '#8b5cf6', '#d946ef', '#ec4899', '#f43f5e', '#b76ccb',
+            '#a78bfa', '#c084fc', '#e879f9', '#f0abfc', '#fbcfe8'
+        ];
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragging');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragging');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragging');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) handleFile(files[0]);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleFile(e.target.files[0]);
+        });
+
+        anesthetistSelect.addEventListener('change', (e) => {
+            renderSchedule(e.target.value || null);
+        });
+
+        function handleFile(file) {
+            if (!file.name.endsWith('.csv')) {
+                showError('Please upload a CSV file');
+                return;
+            }
+            fileInfo.textContent = `✓ Selected: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+            uploadFile(file);
+        }
+
+        function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            errorDiv.style.display = 'none';
+            successMsg.style.display = 'none';
+            loading.style.display = 'block';
+            metricsContainer.classList.remove('active');
+
+            fetch('/optimize', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                if (data.success) {
+                    currentGanttData = data.gantt_data;
+                    currentMetrics = data.metrics;
+                    updateMetrics(data.metrics);
+                    buildDropdown();
+                    renderSchedule(null);
+                    showSuccess('✓ Schedule optimized successfully!');
+                    metricsContainer.classList.add('active');
+                    scheduleSection.style.display = 'block';
+                } else {
+                    showError(data.error || 'Unknown error occurred');
+                }
+            })
+            .catch(err => {
+                loading.style.display = 'none';
+                showError('Error: ' + err.message);
+            });
+        }
+
+        function updateMetrics(metrics) {
+            document.getElementById('metricCost').textContent = `$${metrics.total_cost}`;
+            document.getElementById('metricAnesthetists').textContent = metrics.num_anesthetists;
+            document.getElementById('metricAvgShift').textContent = `${metrics.avg_shift_hours}h`;
+            document.getElementById('metricOvertime').textContent = `${metrics.total_overtime_hours}h`;
+        }
+
+        function buildDropdown() {
+            const grouped = {};
+            currentGanttData.forEach(item => {
+                if (!grouped[item.anesthetist]) {
+                    grouped[item.anesthetist] = [];
+                }
+                grouped[item.anesthetist].push(item);
+            });
+
+            currentGrouped = grouped;
+
+            const anesthetists = Object.keys(grouped)
+                .map(name => ({name, num: parseInt(name.split(' ')[1])}))
+                .sort((a, b) => a.num - b.num)
+                .map(x => x.name);
+
+            anesthetistSelect.innerHTML = '<option value="">All Anesthetists</option>';
+            anesthetists.forEach(anesth => {
+                const option = document.createElement('option');
+                option.value = anesth;
+                option.textContent = anesth.toUpperCase();
+                anesthetistSelect.appendChild(option);
+            });
+        }
+
+        function renderSchedule(selectedAnesthetist) {
+            if (!selectedAnesthetist) {
+                renderGanttChart(currentGrouped);
+            } else {
+                renderTableView(currentGrouped[selectedAnesthetist] || []);
+            }
+        }
+
+        function renderGanttChart(grouped) {
+            const anesthetists = Object.keys(grouped)
+                .map(name => ({name, num: parseInt(name.split(' ')[1])}))
+                .sort((a, b) => a.num - b.num)
+                .map(x => x.name);
+
+            const allSurgeries = Object.values(grouped).flat();
+            if (allSurgeries.length === 0) {
+                scheduleContent.innerHTML = '<div class="no-data">No surgeries scheduled</div>';
+                return;
+            }
+
+            const times = allSurgeries.map(s => [new Date(s.start), new Date(s.end)]).flat();
+            const minTime = new Date(Math.min(...times.map(t => t.getTime())));
+            const maxTime = new Date(Math.max(...times.map(t => t.getTime())));
+
+            const startHour = minTime.getHours();
+            const endHour = Math.ceil(maxTime.getHours() + (maxTime.getMinutes() > 0 ? 1 : 0));
+            const dayStart = new Date(minTime);
+            dayStart.setHours(0, 0, 0, 0);
+
+            // First pass: calculate heights for all anesthetists
+            const anesthetistHeights = {};
+            anesthetists.forEach(anesth => {
+                const surgeries = grouped[anesth];
+                const sortedSurgeries = surgeries.slice().sort((a, b) => new Date(a.start) - new Date(b.start));
+                const layers = [];
+                
+                sortedSurgeries.forEach(surgery => {
+                    const surgeryStart = new Date(surgery.start).getTime();
+                    const surgeryEnd = new Date(surgery.end).getTime();
+                    
+                    let layerIdx = 0;
+                    for (let l = 0; l < layers.length; l++) {
+                        const lastInLayer = layers[l][layers[l].length - 1];
+                        const lastEnd = new Date(lastInLayer.end).getTime();
+                        if (surgeryStart >= lastEnd) {
+                            layerIdx = l;
+                            break;
+                        }
+                        layerIdx = l + 1;
+                    }
+                    
+                    if (!layers[layerIdx]) layers[layerIdx] = [];
+                    layers[layerIdx].push(surgery);
+                });
+                
+                const numLayers = layers.length;
+                const rowHeight = numLayers * 45 + 50;
+                anesthetistHeights[anesth] = rowHeight;
+            });
+
+            let html = '<div class="gantt-wrapper"><div class="gantt-labels"><div class="gantt-label-header">ANESTHETIST</div>';
+            anesthetists.forEach(a => {
+                const height = anesthetistHeights[a];
+                html += `<div class="gantt-label" style="height: ${height}px; text-transform: uppercase;">${a.toUpperCase()}</div>`;
+            });
+            html += '</div><div class="gantt-content"><div class="gantt-timeline-header">';
+
+            for (let h = startHour; h < endHour; h++) {
+                html += `<div class="gantt-hour">${String(h).padStart(2, '0')}:00</div>`;
+            }
+            html += '</div><div class="gantt-rows">';
+
+            const hourRange = endHour - startHour;
+            const cellWidth = 180;
+
+            anesthetists.forEach(anesth => {
+                const surgeries = grouped[anesth];
+                
+                // Sort surgeries by start time and detect overlaps
+                const sortedSurgeries = surgeries.slice().sort((a, b) => new Date(a.start) - new Date(b.start));
+                const layers = []; // Array of arrays, each sub-array is a layer of non-overlapping surgeries
+                
+                sortedSurgeries.forEach(surgery => {
+                    const surgeryStart = new Date(surgery.start).getTime();
+                    const surgeryEnd = new Date(surgery.end).getTime();
+                    
+                    // Find which layer this surgery fits into
+                    let layerIdx = 0;
+                    for (let l = 0; l < layers.length; l++) {
+                        const lastInLayer = layers[l][layers[l].length - 1];
+                        const lastEnd = new Date(lastInLayer.end).getTime();
+                        if (surgeryStart >= lastEnd) {
+                            layerIdx = l;
+                            break;
+                        }
+                        layerIdx = l + 1;
+                    }
+                    
+                    if (!layers[layerIdx]) layers[layerIdx] = [];
+                    layers[layerIdx].push(surgery);
+                });
+                
+                // Use pre-calculated row height
+                const rowHeight = anesthetistHeights[anesth];
+                
+                html += `<div class="gantt-row" style="height: ${rowHeight}px;"><div class="gantt-cell">`;
+                
+                // Render surgeries with vertical stacking
+                sortedSurgeries.forEach(surgery => {
+                    // Find which layer this surgery is in
+                    let layerIdx = -1;
+                    for (let l = 0; l < layers.length; l++) {
+                        if (layers[l].includes(surgery)) {
+                            layerIdx = l;
+                            break;
+                        }
+                    }
+                    
+                    const start = new Date(surgery.start);
+                    const end = new Date(surgery.end);
+                    const startMin = (start - dayStart) / (1000 * 60);
+                    const durationMin = (end - start) / (1000 * 60);
+                    
+                    const minutesFromStartHour = startMin - (startHour * 60);
+                    const left = (minutesFromStartHour / 60) * cellWidth;
+                    const width = (durationMin / 60) * cellWidth;
+                    const top = layerIdx * 45 + 8;
+                    const roomNum = parseInt(surgery.room.split('-')[1].trim());
+                    const color = ROOM_COLORS[roomNum % ROOM_COLORS.length];
+                    const startStr = start.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: false});
+                    const endStr = end.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: false});
+                    const minWidth = Math.max(width, 30);
+                    const fontSize = width < 50 ? '0.7em' : '0.9em';
+
+                    html += `<div class="gantt-surgery" style="left: ${left}px; width: ${minWidth}px; top: ${top}px; background: ${color}; font-size: ${fontSize}; border: 2px solid #333; color: #fff;" onmouseover="showTooltip(event, '${surgery.surgery_id}', '${surgery.room}', '${startStr}', '${endStr}', '${surgery.duration_h}')" onmouseout="hideTooltip(event)" onclick="openModal('${anesth}', '${surgery.surgery_id}')">S${String(surgery.surgery_id).toUpperCase()}</div>`;
+                });
+                html += '</div></div>';
+            });
+
+            html += '</div></div></div>';
+            scheduleContent.innerHTML = html;
+            
+            // Add scroll listener to clean up any lingering tooltips
+            const ganttContent = scheduleContent.querySelector('.gantt-content');
+            if (ganttContent) {
+                ganttContent.addEventListener('scroll', cleanupTooltips);
+            }
+        }
+
+        function showTooltip(e, sid, room, start, end, duration) {
+            cleanupTooltips();
+            const t = document.createElement('div');
+            t.className = 'gantt-tooltip';
+            t.innerHTML = `<div class="tooltip-row"><span class="tooltip-label">Surgery:</span><span class="tooltip-value">#${sid}</span></div><div class="tooltip-row"><span class="tooltip-label">Room:</span><span class="tooltip-value">${room}</span></div><div class="tooltip-row"><span class="tooltip-label">Start:</span><span class="tooltip-value">${start}</span></div><div class="tooltip-row"><span class="tooltip-label">End:</span><span class="tooltip-value">${end}</span></div><div class="tooltip-row"><span class="tooltip-label">Duration:</span><span class="tooltip-value">${duration}h</span></div>`;
+            document.body.appendChild(t);
+
+            const rect = e.target.getBoundingClientRect();
+            t.style.position = 'fixed';
+            t.style.top = (rect.bottom + 8) + 'px';
+            t.style.left = Math.max(0, rect.left - t.offsetWidth / 2) + 'px';
+            
+            // Store reference for cleanup
+            t.dataset.surgeryId = sid;
+            window.currentTooltip = t;
+        }
+
+        function hideTooltip(e) {
+            cleanupTooltips();
+        }
+
+        function cleanupTooltips() {
+            const tooltips = document.querySelectorAll('.gantt-tooltip');
+            tooltips.forEach(t => t.remove());
+            window.currentTooltip = null;
+        }
+
+        document.addEventListener('scroll', cleanupTooltips);
+
+        function renderTableView(surgeries) {
+            surgeries.sort((a, b) => new Date(a.start) - new Date(b.start));
+
+            let html = '<div style="overflow-x: auto;"><table class="schedule-table"><thead><tr><th>Start Time</th><th>End Time</th><th>Duration</th><th>Surgery ID</th><th>Room</th></tr></thead><tbody>';
+
+            surgeries.forEach(item => {
+                const startTime = new Date(item.start).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: false});
+                const endTime = new Date(item.end).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: false});
+                const roomNum = parseInt(item.room.split('-')[1].trim());
+                const color = ROOM_COLORS[roomNum % ROOM_COLORS.length];
+
+                html += `<tr><td><strong>${startTime}</strong></td><td><strong>${endTime}</strong></td><td>${item.duration_h}h</td><td><strong>#${String(item.surgery_id).toUpperCase()}</strong></td><td><div class="surgery-block" style="background: ${color};">${item.room}</div></td></tr>`;
+            });
+
+            html += '</tbody></table></div>';
+            scheduleContent.innerHTML = html;
+        }
+
+        function openModal(anesth, sid) {
+            const surgeries = currentGrouped[anesth];
+            document.getElementById('modalTitle').textContent = `${anesth} - Daily Schedule`;
+
+            let html = '<div style="overflow-x: auto;"><table class="schedule-table"><thead><tr><th>Start Time</th><th>End Time</th><th>Duration</th><th>Surgery ID</th><th>Room</th></tr></thead><tbody>';
+
+            surgeries.sort((a, b) => new Date(a.start) - new Date(b.start)).forEach(item => {
+                const startTime = new Date(item.start).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: false});
+                const endTime = new Date(item.end).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: false});
+                const roomNum = parseInt(item.room.split('-')[1].trim());
+                const color = ROOM_COLORS[roomNum % ROOM_COLORS.length];
+                const highlight = item.surgery_id === sid ? ' style="background: #e0f7fa;"' : '';
+
+                html += `<tr${highlight}><td><strong>${startTime}</strong></td><td><strong>${endTime}</strong></td><td>${item.duration_h}h</td><td><strong>#${String(item.surgery_id).toUpperCase()}</strong></td><td><div class="surgery-block" style="background: ${color};">${item.room}</div></td></tr>`;
+            });
+
+            document.getElementById('modalBody').innerHTML = html + '</tbody></table></div>';
+            modal.style.display = 'block';
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        window.onclick = (e) => {
+            if (e.target == modal) modal.style.display = 'none';
+        }
+
+        function showError(msg) {
+            errorDiv.textContent = '❌ ' + msg;
+            errorDiv.style.display = 'block';
+        }
+
+        function showSuccess(msg) {
+            successMsg.textContent = msg;
+            successMsg.style.display = 'block';
+            setTimeout(() => { successMsg.style.display = 'none'; }, 5000);
+        }
+
+        // ===== Predictions Tab =====
+        const predictionUploadArea = document.getElementById('predictionUploadArea');
+        const predictionFileInput = document.getElementById('predictionFileInput');
+        const predictionFileInfo = document.getElementById('predictionFileInfo');
+        const predictionError = document.getElementById('predictionError');
+        const predictionSuccessMsg = document.getElementById('predictionSuccessMsg');
+        const predictionLoading = document.getElementById('predictionLoading');
+
+        function showPredictionError(msg) {
+            predictionError.textContent = '❌ ' + msg;
+            predictionError.style.display = 'block';
+        }
+
+        function showPredictionSuccess(msg) {
+            predictionSuccessMsg.textContent = msg;
+            predictionSuccessMsg.style.display = 'block';
+            setTimeout(() => { predictionSuccessMsg.style.display = 'none'; }, 5000);
+        }
+
+        // Drag and drop for predictions
+        predictionUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            predictionUploadArea.style.background = '#dbeafe';
+        });
+
+        predictionUploadArea.addEventListener('dragleave', () => {
+            predictionUploadArea.style.background = '';
+        });
+
+        predictionUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            predictionUploadArea.style.background = '';
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handlePredictionFile(files[0]);
+            }
+        });
+
+        predictionFileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handlePredictionFile(e.target.files[0]);
+            }
+        });
+
+        function handlePredictionFile(file) {
+            predictionError.style.display = 'none';
+            predictionSuccessMsg.style.display = 'none';
+
+            if (!file.name.endsWith('.csv')) {
+                showPredictionError('Please upload a CSV file');
+                return;
+            }
+
+            predictionFileInfo.textContent = `📄 ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+            uploadPredictions(file);
+        }
+
+        function uploadPredictions(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            predictionLoading.style.display = 'block';
+            document.getElementById('businessImpactSection').style.display = 'none';
+
+            fetch('/predict-duration', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                predictionLoading.style.display = 'none';
+                if (data.success) {
+                    displayPredictionResults(data);
+                    showPredictionSuccess('✓ Predictions completed successfully!');
+                } else {
+                    showPredictionError(data.error || 'Unknown error occurred');
+                }
+            })
+            .catch(err => {
+                predictionLoading.style.display = 'none';
+                showPredictionError('Error: ' + err.message);
+            });
+        }
+
+        // Format dollar values: $1.3M, $450k, $900
+        function formatMoney(val) {
+            if (val >= 1e6)  return '$' + (val / 1e6).toFixed(1) + 'M';
+            if (val >= 1e3)  return '$' + (val / 1e3).toFixed(0) + 'k';
+            return '$' + Math.round(val);
+        }
+
+        // Mirror of Python business impact formula — runs entirely in the browser.
+        // mae: model MAE in minutes; avgSurgeryMin: mean duration from uploaded file;
+        // cfg: config object from /config endpoint.
+        function computeImpact(mae, avgSurgeryMin, cfg) {
+            const surgeriesPerDay = cfg.surgeries_per_day;
+            const workDaysPerYear = cfg.work_days_per_month * 12;
+            // Time freed per surgery × surgeries per day ÷ avg duration = extra surgeries per day
+            const gainedDaily   = (Math.abs(cfg.manual_buffer_minutes) - Math.abs(mae)) * surgeriesPerDay / avgSurgeryMin;
+            const gainedMonthly = gainedDaily * cfg.work_days_per_month;
+            const gainedYearly  = gainedDaily * workDaysPerYear;
+            const perORannual   = gainedYearly * cfg.revenue_per_surgery;
+            const totalORs      = cfg.num_ors_per_department * cfg.num_departments;
+            const totalBenefit  = perORannual * totalORs;
+            return {
+                surgeries_gained_daily:   gainedDaily,
+                surgeries_gained_monthly: gainedMonthly,
+                surgeries_gained_yearly:  gainedYearly,
+                per_or_annual_benefit:    perORannual,
+                total_ors:                totalORs,
+                total_annual_benefit:     totalBenefit,
+            };
+        }
+
+        function updateImpactDisplay(impact) {
+            // Card 1: Extra Surgeries / Month
+            document.getElementById('impactSurgeriesMonth').textContent = '+' + Number(impact.surgeries_gained_monthly).toFixed(1);
+            document.getElementById('detailSurgeriesDay').textContent   = '+' + Number(impact.surgeries_gained_daily).toFixed(3);
+            document.getElementById('detailSurgeriesYear').textContent  = Math.round(impact.surgeries_gained_yearly);
+
+            // Card 2: Per OR / Year
+            document.getElementById('impactPerOR').textContent      = formatMoney(impact.per_or_annual_benefit);
+            document.getElementById('detailPerORMonth').textContent  = formatMoney(impact.per_or_annual_benefit / 12);
+
+            // Card 3: Facility Scale (use currentConfig for individual OR/dept counts)
+            const orsPerDept = currentConfig.num_ors_per_department || '-';
+            const depts      = currentConfig.num_departments        || '-';
+            const totalORs   = impact.total_ors || (orsPerDept * depts);
+            document.getElementById('detailORsPerDept').textContent = orsPerDept;
+            document.getElementById('detailDepts').textContent      = depts;
+            document.getElementById('detailTotalORs').textContent   = totalORs;
+
+            // Card 4: Total Annual Benefit
+            document.getElementById('impactTotal').textContent         = formatMoney(impact.total_annual_benefit);
+            document.getElementById('detailTotalCalc').textContent     = formatMoney(impact.per_or_annual_benefit) + ' × ' + totalORs + ' ORs';
+            document.getElementById('detailTotalMonth').textContent    = formatMoney(impact.total_annual_benefit / 12);
+        }
+
+        function displayPredictionResults(data) {
+            // Update accuracy metrics
+            document.getElementById('metricMAE').textContent  = `±${data.metrics.mae.toFixed(1)}`;
+            document.getElementById('metricMAPE').textContent = `${data.metrics.mape.toFixed(1)}%`;
+            document.getElementById('metricAcc15').textContent = `${data.metrics.acc_15.toFixed(1)}%`;
+
+            const improvement = data.metrics.improvement || 0;
+            document.getElementById('metricImprovement').textContent = `+${improvement.toFixed(1)}%`;
+
+            // Populate the VS Manual comparison inline labels
+            const metricMAEInline = document.getElementById('metricMAEInline');
+            const manualMAEInline = document.getElementById('manualMAEInline');
+            if (metricMAEInline) metricMAEInline.textContent = data.metrics.mae.toFixed(1);
+            if (manualMAEInline) manualMAEInline.textContent = (data.metrics.manual_mae || 25).toFixed(0);
+
+            // Store MAE and avg surgery duration so Business Settings can recalculate later
+            lastMAE = data.metrics.mae;
+            lastAvgSurgeryMin = data.business_impact.avg_surgery_minutes_used;
+
+            // Static details that come from data/server and don't change with settings
+            document.getElementById('detailAvgDuration').textContent = data.business_impact.avg_surgery_minutes_used;
+
+            // Display business impact using the values the server computed with current config
+            updateImpactDisplay(data.business_impact);
+            document.getElementById('businessImpactSection').style.display = 'block';
+        }
+
+        // Settings Modal
+        function openSettingsModal() {
+            loadConfig();
+            document.getElementById('settingsModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && document.getElementById('settingsModal').style.display === 'block') {
+                closeSettingsModal();
+            }
+        });
+
+        // Configuration Management
+        let currentConfig = {};
+
+        function loadConfig() {
+            fetch('/config')
+                .then(resp => resp.json())
+                .then(data => {
+                    if (data.success) {
+                        currentConfig = data.config;
+                        renderConfigForm(data.config, data.descriptions);
+                        const lbl = document.getElementById('manualBufferLabel');
+                        if (lbl) lbl.textContent = data.config.manual_buffer_minutes;
+                        const rev = document.getElementById('detailRevenuePerSurgery');
+                        if (rev) rev.textContent = (data.config.revenue_per_surgery / 1000).toFixed(0) + 'k';
+                    }
+                })
+                .catch(err => console.error('Error loading config:', err));
+        }
+
+        function renderConfigForm(config, descriptions) {
+            const form = document.getElementById('configForm');
+            form.innerHTML = '';
+
+            const fields = [
+                ['surgeries_per_day',       'Surgeries per Day'],
+                ['num_ors_per_department',  'ORs per Department'],
+                ['num_departments',         'Departments'],
+                ['work_days_per_month',     'Work Days per Month'],
+                ['revenue_per_surgery',     'Revenue per Surgery ($)'],
+                ['manual_buffer_minutes',   'Manual MAE (minutes)'],
+            ];
+
+            fields.forEach(([key, label]) => {
+                const value = config[key] !== undefined ? config[key] : '';
+                const desc  = descriptions[key] || '';
+
+                const fieldHtml = `
+                    <div class="form-group">
+                        <label for="cfg_${key}" style="display:flex; align-items:center; gap:4px;">
+                            ${label}
+                            <span class="info-tip">ⓘ<span class="tip-text">${desc}</span></span>
+                        </label>
+                        <input
+                            type="number"
+                            id="cfg_${key}"
+                            value="${value}"
+                            step="${key.includes('rate') ? '0.01' : '1'}"
+                            min="0"
+                        />
+                    </div>
+                `;
+                form.innerHTML += fieldHtml;
+            });
+        }
+
+        function saveConfig() {
+            const configData = {};
+            const fields = [
+                'surgeries_per_day', 'num_ors_per_department', 'num_departments',
+                'work_days_per_month', 'revenue_per_surgery', 'manual_buffer_minutes'
+            ];
+
+            fields.forEach(field => {
+                const input = document.getElementById(`cfg_${field}`);
+                if (input) {
+                    configData[field] = parseFloat(input.value);
+                }
+            });
+
+            fetch('/config', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(configData)
+            })
+            .then(resp => resp.json())
+            .then(data => {
+                if (data.success) {
+                    currentConfig = data.config;
+                    const lbl = document.getElementById('manualBufferLabel');
+                    if (lbl) lbl.textContent = data.config.manual_buffer_minutes;
+                    if (lastMAE !== null && lastAvgSurgeryMin !== null) {
+                        updateImpactDisplay(computeImpact(lastMAE, lastAvgSurgeryMin, data.config));
+                        showConfigMessage('✓ Configuration saved — business impact updated!', 'success');
+                    } else {
+                        showConfigMessage('✓ Configuration saved successfully!', 'success');
+                    }
+                } else {
+                    showConfigMessage('✗ Error: ' + data.error, 'error');
+                }
+            })
+            .catch(err => showConfigMessage('✗ Error: ' + err.message, 'error'));
+        }
+
+        function resetConfig() {
+            if (confirm('Reset all configuration to defaults?')) {
+                fetch('/config/reset', {method: 'POST'})
+                    .then(resp => resp.json())
+                    .then(data => {
+                        if (data.success) {
+                            currentConfig = data.config;
+                            renderConfigForm(data.config, data.descriptions || {});
+                            showConfigMessage('✓ Configuration reset to defaults', 'success');
+                        }
+                    })
+                    .catch(err => showConfigMessage('✗ Error: ' + err.message, 'error'));
+            }
+        }
+
+        function showConfigMessage(msg, type) {
+            const msgDiv = document.getElementById('configMessage');
+            msgDiv.textContent = msg;
+            msgDiv.style.color = type === 'success' ? '#059669' : '#dc2626';
+            msgDiv.style.padding = '12px';
+            msgDiv.style.backgroundColor = type === 'success' ? '#f0fdf4' : '#fef2f2';
+            msgDiv.style.borderRadius = '8px';
+            setTimeout(() => { msgDiv.textContent = ''; }, 4000);
+        }
+
+        // Load config on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadConfig();
+        });
+    </script>
+</body>
+</html>
+
